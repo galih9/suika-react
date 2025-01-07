@@ -86,8 +86,8 @@ export const list_power: IPower[] = [
     power_id: 'PW1'
   },
   {
-    name: 'Sticky Ball',
-    description: 'Next spawned ball will be sticky and can attached to wall',
+    name: 'Heavy Ball',
+    description: 'Next spawned ball will be heavy and less rolling',
     power_id: 'PW2'
   },
   {

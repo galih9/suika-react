@@ -32,9 +32,15 @@ function App() {
   ])
   const [activePower, setActivePower] = useState<IPower[]>([])
   const [disasters, setDisasters] = useState<IPower[]>([list_disaster[1]])
+  // dw1
+  const [isDw1, setIsDw1] = useState(false)
+  const isDw1Ref = useRef(false)
   // pw1
   const [isPw1, setIsPw1] = useState(false)
   const isPw1Ref = useRef(false)
+  // pw2
+  const [isPw2, setIsPw2] = useState(false)
+  const isPw2Ref = useRef(false)
 
   useEffect(() => {
     if (activePower.length > 0) {
@@ -44,9 +50,14 @@ function App() {
         if (element.power_id === 'PW1') {
           setIsPw1(true)
         }
+        if (element.power_id === 'PW2') {
+          setIsPw2(true)
+        }
       }
     }
   }, [activePower])
+
+  useEffect(() => {}, [disasters])
 
   useEffect(() => {
     if (dropCounter > 0 && dropCounter % 5 === 0) {
@@ -64,11 +75,9 @@ function App() {
   }, [dropCounter])
 
   useEffect(() => {
-    ballSizeRef.current = ballSize
-  }, [ballSize])
-
-  useEffect(() => {
     isPw1Ref.current = isPw1
+    isPw2Ref.current = isPw2
+    ballSizeRef.current = ballSize
   }, [ballSize])
 
   const engine = useRef<Engine>(Engine.create())
@@ -158,12 +167,23 @@ function App() {
                   console.log('merged while true')
                   setScore((prev) => prev + ballA.size * 2)
                   setIsPw1(false)
-                  setActivePower((prev) => [
-                    ...prev.filter((power) => power.power_id !== 'PW1')
-                  ])
+                  setActivePower((prev) => {
+                    const index = prev.findIndex(
+                      (power) => power.power_id === 'PW1'
+                    )
+                    if (index !== -1) {
+                      const newActivePower = [...prev]
+                      newActivePower.splice(index, 1)
+                      return newActivePower
+                    }
+                    return prev
+                  })
                 } else {
-                  console.log('merged while false')
                   setScore((prev) => prev + ballA.size)
+                }
+                // check disaster
+                if (isDw1Ref) {
+                  setScore((prev) => prev - 5)
                 }
                 Composite.remove(engineInstance.world, bodyA)
                 Composite.remove(engineInstance.world, bodyB)
@@ -192,7 +212,10 @@ function App() {
         const mouseX = event.clientX - rect.left
         const circle = Bodies.circle(mouseX, 0, ballSizeRef.current.size, {
           label: ballSizeRef.current.name,
-          render: { fillStyle: ballSizeRef.current.color }
+          // force:  { x: 0, y: 0.05 }, // Add downward force to make the ball heavy
+          render: { fillStyle: ballSizeRef.current.color },
+          friction: 1,
+          frictionStatic: 1
         })
         Composite.add(engineInstance.world, circle)
 
