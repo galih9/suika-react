@@ -1,4 +1,11 @@
-import { IBalls, IPower } from "./types"
+import { IBalls, IPower } from './types'
+
+export const list_powerballs: IBalls[] = [
+  { size: 40, name: 'GOD_BALL', color: '#eeff00', power_id: 'PW7' },
+  { size: 40, name: 'FIRE_BALL', color: '#ff8833', power_id: 'PW4' },
+  { size: 40, name: 'SPIKE_BALL', color: '#616161', power_id: 'DS9' },
+  { size: 40, name: 'JUNKY_BALL', color: '#ffffff', power_id: 'DS3' }
+]
 
 export const list_item: IBalls[] = [
   { size: 10, name: 'A', color: '#FF5733' },
