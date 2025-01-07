@@ -8,8 +8,8 @@ import {
   Runner,
   Events
 } from 'matter-js'
-import { list_item } from 'utils/constants'
-import { IBalls } from 'utils/types'
+import { list_disaster, list_item, list_power } from 'utils/constants'
+import { IBalls, IPower } from 'utils/types'
 
 function App() {
   const scene = useRef<HTMLDivElement>(null)
@@ -24,10 +24,29 @@ function App() {
   const [ballSize, setBallSize] = useState<IBalls>(list_item[0]) // random radius between 10 and 40
   const ballSizeRef = useRef(ballSize)
   const [showModal, setShowModal] = useState(false)
+  const [poweredBall, setPoweredBall] = useState<IBalls[]>([])
+  const [availablePower, setAvailablePower] = useState<IPower[]>([
+    list_power[0],
+    list_power[5],
+    list_power[7]
+  ])
+  const [activePower, setActivePower] = useState<IPower[]>([])
+  const [disasters, setDisasters] = useState<IPower[]>([list_disaster[1]])
+  // pw1
+  const [isPw1, setIsPw1] = useState(false)
+  const isPw1Ref = useRef(false)
 
-  const handleCloseModal = () => {
-    setShowModal(false)
-  }
+  useEffect(() => {
+    if (activePower.length > 0) {
+      for (let i = 0; i < activePower.length; i++) {
+        const element = activePower[i]
+        console.log(element, 'pw', isPw1)
+        if (element.power_id === 'PW1') {
+          setIsPw1(true)
+        }
+      }
+    }
+  }, [activePower])
 
   useEffect(() => {
     if (dropCounter > 0 && dropCounter % 5 === 0) {
@@ -46,6 +65,10 @@ function App() {
 
   useEffect(() => {
     ballSizeRef.current = ballSize
+  }, [ballSize])
+
+  useEffect(() => {
+    isPw1Ref.current = isPw1
   }, [ballSize])
 
   const engine = useRef<Engine>(Engine.create())
@@ -131,7 +154,17 @@ function App() {
                   }
                 )
                 Composite.add(engineInstance.world, newBall)
-                setScore((prev) => prev + ballA.size)
+                if (isPw1Ref.current) {
+                  console.log('merged while true')
+                  setScore((prev) => prev + ballA.size * 2)
+                  setIsPw1(false)
+                  setActivePower((prev) => [
+                    ...prev.filter((power) => power.power_id !== 'PW1')
+                  ])
+                } else {
+                  console.log('merged while false')
+                  setScore((prev) => prev + ballA.size)
+                }
                 Composite.remove(engineInstance.world, bodyA)
                 Composite.remove(engineInstance.world, bodyB)
               }
@@ -219,6 +252,26 @@ function App() {
         <p className="text-lg">
           Drop Count: <span className="font-semibold">{`${dropCounter}`}</span>
         </p>
+        {activePower.length != 0 && (
+          <>
+            <p className="text-lg">Active Power:</p>
+            {activePower.map((e) => (
+              <span key={e.name} className="font-semibold">
+                {e.name}
+              </span>
+            ))}
+          </>
+        )}
+        {disasters.length != 0 && (
+          <>
+            <p className="text-lg">Active Disasters:</p>
+            {disasters.map((e) => (
+              <span key={e.name} className="font-semibold">
+                {e.name}
+              </span>
+            ))}
+          </>
+        )}
       </div>
       <div
         ref={scene}
@@ -241,26 +294,40 @@ function App() {
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-lg relative">
-            <h2 className="text-2xl font-bold mb-4">Shop</h2>
+            <h2 className="text-2xl font-bold mb-4">Pick A Power Ups</h2>
             <div className="grid grid-cols-3 gap-4">
-              {availableBall.map((item) => (
+              {availablePower.map((item) => (
                 <div
                   key={item.name}
-                  className="p-4 bg-gray-200 rounded-lg relative"
+                  className="p-4 bg-gray-200 rounded-lg relative group cursor-pointer"
+                  onClick={() => {
+                    setActivePower((prev) => [...prev, item])
+                    setShowModal(false)
+                  }}
                 >
-                  <div className="absolute inset-0 bg-black bg-opacity-75 text-white flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                    <p>{`Upgrade ${item.name}: ${item.size}px`}</p>
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-800 text-white text-xs rounded-md shadow-lg">
+                    {item.description}
                   </div>
                   <p className="text-center">{item.name}</p>
                 </div>
               ))}
             </div>
-            <button
-              onClick={handleCloseModal}
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg"
-            >
-              Close
-            </button>
+            <p className="text-md font-normal mb-4 my-4">Current Disasters</p>
+            <div className="w-full flex items-center justify-center">
+              <div className="grid grid-cols-3 gap-4">
+                {disasters.map((item) => (
+                  <div
+                    key={item.name}
+                    className="p-4 bg-gray-200 rounded-lg relative group"
+                  >
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-800 text-white text-xs rounded-md shadow-lg">
+                      {item.description}
+                    </div>
+                    <p className="text-center">{item.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}

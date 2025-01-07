@@ -6,4 +6,4 @@ import MatterPixiSmoke from 'components/smoketest'
 const container = document.getElementById('root') as HTMLDivElement
 const root = createRoot(container)
 
-root.render(<MatterPixiSmoke />)
+root.render(<App />)
