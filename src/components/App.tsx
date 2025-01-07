@@ -56,14 +56,16 @@ function App() {
     ballSizeRef.current = ballSize
   }, [ballSize])
 
+  const engine = useRef<Engine>(Engine.create())
+
   useEffect(() => {
     // create an engine
-    var engine = Engine.create()
+    const { current: engineInstance } = engine
 
     // create a renderer
     var render = Render.create({
       element: scene.current || undefined, // updated to use scene.current with null check
-      engine: engine,
+      engine: engineInstance,
       options: {
         wireframes: false, // set wireframes to false to enable colors
         background: '#fff396' // set the background color
@@ -81,7 +83,12 @@ function App() {
     }) // top sensor
 
     // add all of the bodies to the world
-    Composite.add(engine.world, [ground, leftWall, rightWall, topSensor])
+    Composite.add(engineInstance.world, [
+      ground,
+      leftWall,
+      rightWall,
+      topSensor
+    ])
 
     // run the renderer
     Render.run(render)
@@ -90,49 +97,56 @@ function App() {
     var runner = Runner.create()
 
     // run the engine
-    Runner.run(runner, engine)
+    Runner.run(runner, engineInstance)
 
     // add collision event listener for the top sensor
     const touchedBodies = new Set()
-    Events.on(engine, 'collisionStart', (event) => {
-      event.pairs.forEach((pair) => {
-        const bodyA = pair.bodyA
-        const bodyB = pair.bodyB
+    Events.on(
+      engineInstance,
+      'collisionStart',
+      (event: Matter.IEventCollision<Matter.Engine>) => {
+        event.pairs.forEach((pair) => {
+          const bodyA = pair.bodyA
+          const bodyB = pair.bodyB
 
-        if (bodyA === topSensor || bodyB === topSensor) {
-          const otherBody = bodyA === topSensor ? bodyB : bodyA
-          if (touchedBodies.has(otherBody)) {
+          if (bodyA === topSensor || bodyB === topSensor) {
+            const otherBody = bodyA === topSensor ? bodyB : bodyA
+            if (touchedBodies.has(otherBody)) {
+              setIsGameOver(true)
+            } else {
+              touchedBodies.add(otherBody)
+            }
+          } else if (
+            (touchedBodies.has(bodyA) && bodyB === topSensor) ||
+            (touchedBodies.has(bodyB) && bodyA === topSensor)
+          ) {
             setIsGameOver(true)
           } else {
-            touchedBodies.add(otherBody)
-          }
-        } else if (
-          (touchedBodies.has(bodyA) && bodyB === topSensor) ||
-          (touchedBodies.has(bodyB) && bodyA === topSensor)
-        ) {
-          setIsGameOver(true)
-        } else {
-          // Check if two balls of the same size collide
-          const ballA = list_item.find((item) => item.name === bodyA.label)
-          const ballB = list_item.find((item) => item.name === bodyB.label)
-          if (ballA && ballB && ballA.name === ballB.name) {
-            const nextBallIndex = list_item.indexOf(ballA) + 1
-            if (nextBallIndex < list_item.length) {
-              const nextBall = list_item[nextBallIndex]
-              const newBall = Bodies.circle(
-                (bodyA.position.x + bodyB.position.x) / 2,
-                (bodyA.position.y + bodyB.position.y) / 2,
-                nextBall.size,
-                { label: nextBall.name, render: { fillStyle: nextBall.color } }
-              )
-              Composite.add(engine.world, newBall)
-              Composite.remove(engine.world, bodyA)
-              Composite.remove(engine.world, bodyB)
+            // Check if two balls of the same size collide
+            const ballA = list_item.find((item) => item.name === bodyA.label)
+            const ballB = list_item.find((item) => item.name === bodyB.label)
+            if (ballA && ballB && ballA.name === ballB.name) {
+              const nextBallIndex = list_item.indexOf(ballA) + 1
+              if (nextBallIndex < list_item.length) {
+                const nextBall = list_item[nextBallIndex]
+                const newBall = Bodies.circle(
+                  (bodyA.position.x + bodyB.position.x) / 2,
+                  (bodyA.position.y + bodyB.position.y) / 2,
+                  nextBall.size,
+                  {
+                    label: nextBall.name,
+                    render: { fillStyle: nextBall.color }
+                  }
+                )
+                Composite.add(engineInstance.world, newBall)
+                Composite.remove(engineInstance.world, bodyA)
+                Composite.remove(engineInstance.world, bodyB)
+              }
             }
           }
-        }
-      })
-    })
+        })
+      }
+    )
 
     // add mouse move event listener to update preview box position
     const handleMouseMove = (event: MouseEvent) => {
@@ -154,7 +168,7 @@ function App() {
           label: ballSizeRef.current.name,
           render: { fillStyle: ballSizeRef.current.color }
         })
-        Composite.add(engine.world, circle)
+        Composite.add(engineInstance.world, circle)
 
         // Increment drop counter
         setDropCounter((prevCounter) => prevCounter + 1)
@@ -179,6 +193,19 @@ function App() {
     }
   }, [])
 
+  // Cleanup bodies that are out of the viewport
+  Composite.allBodies(engine.current.world).forEach((body) => {
+    const interval = setInterval(() => {
+      Composite.allBodies(engine.current.world).forEach((body) => {
+        if (body.position.y > 700) {
+          Composite.remove(engine.current.world, body)
+        }
+      })
+    }, 1000) // Check every second
+
+    return () => clearInterval(interval)
+  }, [])
+
   useEffect(() => {
     if (previewBox.current) {
       previewBox.current.style.width = `${ballSize.size * 2}px`
@@ -188,13 +215,19 @@ function App() {
 
   return (
     <div className="w-full h-screen flex items-center justify-center">
-      <div className="p-6">
-        <p>Is Game over: {`${isGameOver}`}</p>
-        <p>Count: {`${dropCounter}`}</p>
+      <div className="flex flex-col items-center justify-center p-6 bg-white shadow-lg rounded-lg mr-4">
+        <h1 className="text-2xl font-bold mb-4">Game Stats</h1>
+        <p className="text-lg">
+          Is Game Over: <span className="font-semibold">{`${isGameOver}`}</span>
+        </p>
+        <p className="text-lg">
+          Drop Count: <span className="font-semibold">{`${dropCounter}`}</span>
+        </p>
       </div>
       <div
         ref={scene}
         style={{ width: '800px', height: '600px', position: 'relative' }}
+        className="bg-gray-200 shadow-lg rounded-lg"
       >
         <div
           ref={previewBox}
