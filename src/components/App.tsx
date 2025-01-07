@@ -8,37 +8,26 @@ import {
   Runner,
   Events
 } from 'matter-js'
-
-interface IBalls {
-  size: number
-  name: string
-  color: string
-}
-
-const list_item: IBalls[] = [
-  { size: 10, name: 'A', color: '#FF5733' },
-  { size: 20, name: 'B', color: '#33FF57' },
-  { size: 30, name: 'C', color: '#3357FF' },
-  { size: 40, name: 'D', color: '#FF33A1' },
-  { size: 50, name: 'E', color: '#A133FF' },
-  { size: 60, name: 'F', color: '#33FFA1' },
-  { size: 70, name: 'G', color: '#FFAA33' },
-  { size: 80, name: 'H', color: '#33AAFF' },
-  { size: 90, name: 'I', color: '#AA33FF' },
-  { size: 100, name: 'J', color: '#FF33AA' }
-]
+import { list_item } from 'utils/constants'
+import { IBalls } from 'utils/types'
 
 function App() {
   const scene = useRef<HTMLDivElement>(null)
   const previewBox = useRef<HTMLDivElement>(null)
   const [dropCounter, setDropCounter] = useState(0)
   const [isGameOver, setIsGameOver] = useState(false)
+  const [score, setScore] = useState<number>(0)
   const [availableBall, setAvailableBall] = useState<IBalls[]>([
     list_item[0],
     list_item[1]
   ])
   const [ballSize, setBallSize] = useState<IBalls>(list_item[0]) // random radius between 10 and 40
   const ballSizeRef = useRef(ballSize)
+  const [showModal, setShowModal] = useState(false)
+
+  const handleCloseModal = () => {
+    setShowModal(false)
+  }
 
   useEffect(() => {
     if (dropCounter > 0 && dropCounter % 5 === 0) {
@@ -49,6 +38,9 @@ function App() {
           list_item[nextBallIndex]
         ])
       }
+    }
+    if (dropCounter > 0 && dropCounter % 2 === 0) {
+      setShowModal(true)
     }
   }, [dropCounter])
 
@@ -139,6 +131,7 @@ function App() {
                   }
                 )
                 Composite.add(engineInstance.world, newBall)
+                setScore((prev) => prev + ballA.size)
                 Composite.remove(engineInstance.world, bodyA)
                 Composite.remove(engineInstance.world, bodyB)
               }
@@ -216,9 +209,12 @@ function App() {
   return (
     <div className="w-full h-screen flex items-center justify-center">
       <div className="flex flex-col items-center justify-center p-6 bg-white shadow-lg rounded-lg mr-4">
-        <h1 className="text-2xl font-bold mb-4">Game Stats</h1>
+        <h1 className="text-2xl font-bold mb-4">Player Status</h1>
         <p className="text-lg">
           Is Game Over: <span className="font-semibold">{`${isGameOver}`}</span>
+        </p>
+        <p className="text-lg">
+          Score: <span className="font-semibold">{`${score}`}</span>
         </p>
         <p className="text-lg">
           Drop Count: <span className="font-semibold">{`${dropCounter}`}</span>
@@ -235,13 +231,39 @@ function App() {
             width: `${ballSize.size * 2}px`,
             height: `${ballSize.size * 2}px`,
             borderRadius: '50%',
-            backgroundColor: 'rgba(0, 255, 0, 0.5)',
+            backgroundColor: `${ballSize.color}`,
             position: 'absolute',
             top: '0',
             pointerEvents: 'none'
           }}
         ></div>
       </div>
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg relative">
+            <h2 className="text-2xl font-bold mb-4">Shop</h2>
+            <div className="grid grid-cols-3 gap-4">
+              {availableBall.map((item) => (
+                <div
+                  key={item.name}
+                  className="p-4 bg-gray-200 rounded-lg relative"
+                >
+                  <div className="absolute inset-0 bg-black bg-opacity-75 text-white flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                    <p>{`Upgrade ${item.name}: ${item.size}px`}</p>
+                  </div>
+                  <p className="text-center">{item.name}</p>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={handleCloseModal}
+              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
