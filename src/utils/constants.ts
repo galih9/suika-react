@@ -91,8 +91,9 @@ export const list_power: IPower[] = [
     power_id: 'PW2'
   },
   {
-    name: 'God Hand',
-    description: 'You can rearrange the ball for 3 seconds',
+    name: 'Power Ball',
+    description:
+      'Next dropped ball shoots a random ball after its touch with the ground or anothere ball',
     power_id: 'PW3'
   },
   {

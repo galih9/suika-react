@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import * as PIXI from 'pixi.js'
 import Matter, { Engine, World, Bodies, Composite, Events } from 'matter-js'
-import ballSpike from './assets/ball_spike.svg'
+import ballFire from './assets/ball_fire.svg'
 import { IBalls, IPower } from 'utils/types'
 import { list_disaster, list_item, list_power } from 'utils/constants'
 
@@ -19,8 +19,8 @@ const MatterPixiSmoke: React.FC = () => {
   ])
   const [availablePower, setAvailablePower] = useState<IPower[]>([
     list_power[0],
-    list_power[5],
-    list_power[7]
+    list_power[1],
+    list_power[3]
   ])
   const [activePower, setActivePower] = useState<IPower[]>([])
   const [disasters, setDisasters] = useState<IPower[]>([list_disaster[1]])
@@ -36,6 +36,9 @@ const MatterPixiSmoke: React.FC = () => {
   // pw2
   const [isPw2, setIsPw2] = useState(false)
   const isPw2Ref = useRef(false)
+  // pw4
+  const [isPw4, setIsPw4] = useState(false)
+  const isPw4Ref = useRef(false)
 
   useEffect(() => {
     if (dropCounter > 0 && dropCounter % 5 === 0) {
@@ -55,22 +58,27 @@ const MatterPixiSmoke: React.FC = () => {
     if (activePower.length > 0) {
       for (let i = 0; i < activePower.length; i++) {
         const element = activePower[i]
-        console.log(element, 'pw', isPw1)
         if (element.power_id === 'PW1') {
           setIsPw1(true)
         }
         if (element.power_id === 'PW2') {
           setIsPw2(true)
         }
+        if (element.power_id === 'PW4') {
+          setIsPw4(true)
+        }
       }
     }
-  }, [activePower])
+    console.log('test', activePower)
+  }, [activePower, showModal])
 
   useEffect(() => {
-    isPw1Ref.current = isPw1
-    isPw2Ref.current = isPw2
     ballSizeRef.current = ballSize
   }, [ballSize])
+
+  useEffect(() => {
+    isPw4Ref.current = isPw4
+  }, [isPw4])
 
   useEffect(() => {
     // Initialize Matter.js
@@ -116,12 +124,12 @@ const MatterPixiSmoke: React.FC = () => {
     }
 
     // Create PixiJS sprite for the ball using the SVG texture
-    const ballTexture = PIXI.Texture.from(ballSpike)
-    const ballSprite = new PIXI.Sprite(ballTexture)
-    ballSprite.anchor.set(0.5)
-    ballSprite.width = 100 // Match the size of the smaller ball
-    ballSprite.height = 100 // Match the size of the smaller ball
-    app.stage.addChild(ballSprite)
+    // const ballTexture = PIXI.Texture.from(ballSpike)
+    // const ballSprite = new PIXI.Sprite(ballTexture)
+    // ballSprite.anchor.set(0.5)
+    // ballSprite.width = 100 // Match the size of the smaller ball
+    // ballSprite.height = 100 // Match the size of the smaller ball
+    // app.stage.addChild(ballSprite)
 
     // Create PixiJS graphics for the ground
     const groundGraphics = new PIXI.Graphics()
@@ -164,13 +172,13 @@ const MatterPixiSmoke: React.FC = () => {
       Engine.update(engine)
 
       // Sync ball position
-      ballSprite.x = ball.position.x
-      ballSprite.y = ball.position.y
+      // ballSprite.x = ball.position.x
+      // ballSprite.y = ball.position.y
 
-      // Ensure the ball touches the ground
-      if (ballSprite.y + ballSprite.height / 2 > groundGraphics.y) {
-        ballSprite.y = groundGraphics.y - ballSprite.height / 2
-      }
+      // // Ensure the ball touches the ground
+      // if (ballSprite.y + ballSprite.height / 2 > groundGraphics.y) {
+      //   ballSprite.y = groundGraphics.y - ballSprite.height / 2
+      // }
 
       // Sync positions of all Matter.js bodies and their corresponding PixiJS sprites
       for (let i = 0; i < matterBodies.length; i++) {
@@ -335,89 +343,109 @@ const MatterPixiSmoke: React.FC = () => {
         canDrop = false
         const rect = sceneRef.current.getBoundingClientRect()
         const mouseX = event.clientX - rect.left
-        const circle = Bodies.circle(mouseX, 0, ballSizeRef.current.size, {
-          label: ballSizeRef.current.name,
-          // force:  { x: 0, y: 0.05 }, // Add downward force to make the ball heavy
-          render: { fillStyle: ballSizeRef.current.color },
-          friction: 1,
-          frictionStatic: 1
-        })
+        const circle = Bodies.circle(
+          mouseX,
+          0,
+          !isPw4Ref.current ? ballSizeRef.current.size : 30,
+          {
+            label: ballSizeRef.current.name,
+            // force:  { x: 0, y: 0.05 }, // Add downward force to make the ball heavy
+            render: { fillStyle: ballSizeRef.current.color },
+            friction: 1,
+            frictionStatic: 1
+          }
+        )
         Composite.add(engine.world, circle)
-
-        // Create a corresponding PixiJS graphics for the dropped ball
-        const newBallGraphics = new PIXI.Graphics()
-        newBallGraphics.beginFill(ballSizeRef.current.color)
-        newBallGraphics.drawCircle(0, 0, ballSizeRef.current.size)
-        newBallGraphics.endFill()
-        newBallGraphics.x = mouseX
-        newBallGraphics.y = 0
-        app.stage.addChild(newBallGraphics)
-
-
-        // logic to add spike
-        // const newBallGraphics = new PIXI.Sprite(PIXI.Texture.from(ballSpike))
-        // newBallGraphics.anchor.set(0.5)
-        // newBallGraphics.width = ballSizeRef.current.size * 2
-        // newBallGraphics.height = ballSizeRef.current.size * 2
-        // newBallGraphics.x = mouseX
-        // newBallGraphics.y = 0
-        // app.stage.addChild(newBallGraphics)
-
-        // Store references to the Matter.js body and PixiJS graphics
-        matterBodies.push(circle)
-        pixiSprites.push(newBallGraphics)
+        if (!isPw4Ref.current) {
+          // Create a corresponding PixiJS graphics for the dropped ball
+          const newBallGraphics = new PIXI.Graphics()
+          newBallGraphics.beginFill(ballSizeRef.current.color)
+          newBallGraphics.drawCircle(0, 0, ballSizeRef.current.size)
+          newBallGraphics.endFill()
+          newBallGraphics.x = mouseX
+          newBallGraphics.y = 0
+          app.stage.addChild(newBallGraphics)
+          // Store references to the Matter.js body and PixiJS graphics
+          matterBodies.push(circle)
+          pixiSprites.push(newBallGraphics)
+        } else {
+          // logic to add spike
+          const newBallGraphics = new PIXI.Sprite(PIXI.Texture.from(ballFire))
+          newBallGraphics.anchor.set(0.5)
+          newBallGraphics.width = 30 * 2
+          newBallGraphics.height = 30 * 2
+          newBallGraphics.x = mouseX
+          newBallGraphics.y = 0
+          app.stage.addChild(newBallGraphics)
+          matterBodies.push(circle)
+          pixiSprites.push(newBallGraphics)
+        }
 
         // Increment drop counter
         setDropCounter((prevCounter) => prevCounter + 1)
 
+        if (isPw4Ref.current) {
+          // Generate smoke particles for the dropped ball
+          const smokeDuration = 3000 // 10 seconds
+          const startTime = Date.now()
+
+          const generateSmoke = () => {
+            if (Date.now() - startTime < smokeDuration) {
+              const smokeParticle = new PIXI.Graphics()
+              smokeParticle.beginFill(0xaaaaaa, 0.6)
+              smokeParticle.drawCircle(0, 0, 30) // Match the size of the ball
+              smokeParticle.endFill()
+              smokeParticle.x = circle.position.x
+              smokeParticle.y = circle.position.y
+              smokeContainer.addChild(smokeParticle)
+
+              // Animate smoke particles
+              const lifetime = 60 // Frames
+              let frame = 0
+
+              const animateParticle = () => {
+                smokeParticle.alpha = 0.6 * (1 - frame / lifetime) // Gradually decrease opacity
+                smokeParticle.y -= 1 // Move upwards
+                smokeParticle.scale.set(1 + frame / lifetime) // Gradually increase size
+                frame++
+
+                if (frame >= lifetime) {
+                  smokeContainer.removeChild(smokeParticle)
+                  smokeParticle.destroy()
+                } else {
+                  requestAnimationFrame(animateParticle)
+                }
+              }
+
+              animateParticle()
+            }
+          }
+
+          const smokeTicker = new PIXI.Ticker()
+          smokeTicker.add(generateSmoke)
+          smokeTicker.start()
+
+          setTimeout(() => {
+            canDrop = true
+            setIsPw4(false)
+            setActivePower((prev) => {
+              const index = prev.findIndex((power) => power.power_id === 'PW4')
+              if (index !== -1) {
+                const newActivePower = [...prev]
+                newActivePower.splice(index, 1)
+                return newActivePower
+              }
+              return prev
+            })
+            smokeTicker.stop()
+          }, smokeDuration) // Run the ticker for the entire smoke duration
+        } else {
+          canDrop = true
+        }
+
         // Randomly select the next ball size
         const randomIndex = Math.floor(Math.random() * availableBall.length)
         setBallSize(availableBall[randomIndex])
-
-        // Generate smoke particles for the dropped ball
-        const smokeDuration = 3000 // 10 seconds
-        const startTime = Date.now()
-
-        const generateSmoke = () => {
-          if (Date.now() - startTime < smokeDuration) {
-            const smokeParticle = new PIXI.Graphics()
-            smokeParticle.beginFill(0xaaaaaa, 0.6)
-            smokeParticle.drawCircle(0, 0, ballSizeRef.current.size) // Match the size of the ball
-            smokeParticle.endFill()
-            smokeParticle.x = circle.position.x
-            smokeParticle.y = circle.position.y
-            smokeContainer.addChild(smokeParticle)
-
-            // Animate smoke particles
-            const lifetime = 60 // Frames
-            let frame = 0
-
-            const animateParticle = () => {
-              smokeParticle.alpha = 0.6 * (1 - frame / lifetime) // Gradually decrease opacity
-              smokeParticle.y -= 1 // Move upwards
-              smokeParticle.scale.set(1 + frame / lifetime) // Gradually increase size
-              frame++
-
-              if (frame >= lifetime) {
-                smokeContainer.removeChild(smokeParticle)
-                smokeParticle.destroy()
-              } else {
-                requestAnimationFrame(animateParticle)
-              }
-            }
-
-            animateParticle()
-          }
-        }
-
-        const smokeTicker = new PIXI.Ticker()
-        smokeTicker.add(generateSmoke)
-        smokeTicker.start()
-
-        setTimeout(() => {
-          canDrop = true
-          smokeTicker.stop()
-        }, smokeDuration) // Run the ticker for the entire smoke duration
       }
     }
     sceneRef.current?.addEventListener('mousemove', handleMouseMove)
