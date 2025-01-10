@@ -164,7 +164,6 @@ function App() {
                 )
                 Composite.add(engineInstance.world, newBall)
                 if (isPw1Ref.current) {
-                  console.log('merged while true')
                   setScore((prev) => prev + ballA.size * 2)
                   setIsPw1(false)
                   setActivePower((prev) => {
