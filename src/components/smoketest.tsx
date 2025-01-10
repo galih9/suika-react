@@ -153,7 +153,7 @@ const MatterPixiSmoke: React.FC = () => {
 
     // Store references to Matter.js bodies and their corresponding PixiJS sprites
     const matterBodies: Matter.Body[] = []
-    const pixiSprites: PIXI.Graphics[] = []
+    const pixiSprites: (PIXI.Graphics | PIXI.Sprite)[] = []
 
     // Timer to stop generating smoke after 3 seconds
     const smokeDuration = 3000 // 3 seconds
@@ -353,6 +353,16 @@ const MatterPixiSmoke: React.FC = () => {
         newBallGraphics.y = 0
         app.stage.addChild(newBallGraphics)
 
+
+        // logic to add spike
+        // const newBallGraphics = new PIXI.Sprite(PIXI.Texture.from(ballSpike))
+        // newBallGraphics.anchor.set(0.5)
+        // newBallGraphics.width = ballSizeRef.current.size * 2
+        // newBallGraphics.height = ballSizeRef.current.size * 2
+        // newBallGraphics.x = mouseX
+        // newBallGraphics.y = 0
+        // app.stage.addChild(newBallGraphics)
+
         // Store references to the Matter.js body and PixiJS graphics
         matterBodies.push(circle)
         pixiSprites.push(newBallGraphics)
@@ -364,9 +374,50 @@ const MatterPixiSmoke: React.FC = () => {
         const randomIndex = Math.floor(Math.random() * availableBall.length)
         setBallSize(availableBall[randomIndex])
 
+        // Generate smoke particles for the dropped ball
+        const smokeDuration = 3000 // 10 seconds
+        const startTime = Date.now()
+
+        const generateSmoke = () => {
+          if (Date.now() - startTime < smokeDuration) {
+            const smokeParticle = new PIXI.Graphics()
+            smokeParticle.beginFill(0xaaaaaa, 0.6)
+            smokeParticle.drawCircle(0, 0, ballSizeRef.current.size) // Match the size of the ball
+            smokeParticle.endFill()
+            smokeParticle.x = circle.position.x
+            smokeParticle.y = circle.position.y
+            smokeContainer.addChild(smokeParticle)
+
+            // Animate smoke particles
+            const lifetime = 60 // Frames
+            let frame = 0
+
+            const animateParticle = () => {
+              smokeParticle.alpha = 0.6 * (1 - frame / lifetime) // Gradually decrease opacity
+              smokeParticle.y -= 1 // Move upwards
+              smokeParticle.scale.set(1 + frame / lifetime) // Gradually increase size
+              frame++
+
+              if (frame >= lifetime) {
+                smokeContainer.removeChild(smokeParticle)
+                smokeParticle.destroy()
+              } else {
+                requestAnimationFrame(animateParticle)
+              }
+            }
+
+            animateParticle()
+          }
+        }
+
+        const smokeTicker = new PIXI.Ticker()
+        smokeTicker.add(generateSmoke)
+        smokeTicker.start()
+
         setTimeout(() => {
           canDrop = true
-        }, 500) // 0.5 second delay
+          smokeTicker.stop()
+        }, smokeDuration) // Run the ticker for the entire smoke duration
       }
     }
     sceneRef.current?.addEventListener('mousemove', handleMouseMove)
