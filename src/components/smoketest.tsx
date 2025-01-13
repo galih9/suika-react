@@ -221,6 +221,8 @@ const MatterPixiSmoke: React.FC = () => {
     }
 
     const touchedBodies = new Set()
+    const fireballs = new Set<Matter.Body>() // Store fireballs for cleanup
+
     Events.on(
       engine,
       'collisionStart',
@@ -228,8 +230,37 @@ const MatterPixiSmoke: React.FC = () => {
         event.pairs.forEach((pair) => {
           const bodyA = pair.bodyA
           const bodyB = pair.bodyB
+          if (isPw4Ref.current) {
+            // Check if fireball is involved in the collision
+            const fireballBody = fireballs.has(bodyA)
+              ? bodyA
+              : fireballs.has(bodyB)
+                ? bodyB
+                : null
+            const otherBody = fireballBody === bodyA ? bodyB : bodyA
+            if (fireballBody && otherBody) {
+              // Check if the other body is a ball
+              const ballIndex = matterBodies.indexOf(otherBody)
+              if (ballIndex !== -1) {
+                // Remove ball from Matter.js world
+                Composite.remove(world, otherBody)
 
-          if (bodyA === topSensor || bodyB === topSensor) {
+                // Remove corresponding PixiJS sprite
+                const ballSprite = pixiSprites[ballIndex]
+                if (ballSprite) {
+                  app.stage.removeChild(ballSprite)
+                  ballSprite.destroy()
+                }
+
+                // Remove references
+                matterBodies.splice(ballIndex, 1)
+                pixiSprites.splice(ballIndex, 1)
+
+                // Update score or other game state if necessary
+                setScore((prevScore) => prevScore + 10) // Example: Add points for removing a ball
+              }
+            }
+          } else if (bodyA === topSensor || bodyB === topSensor) {
             const otherBody = bodyA === topSensor ? bodyB : bodyA
             if (touchedBodies.has(otherBody)) {
               setIsGameOver(true)
@@ -379,6 +410,7 @@ const MatterPixiSmoke: React.FC = () => {
           app.stage.addChild(newBallGraphics)
           matterBodies.push(circle)
           pixiSprites.push(newBallGraphics)
+          fireballs.add(circle) // Add fireball to the set
         }
 
         // Increment drop counter
@@ -386,7 +418,7 @@ const MatterPixiSmoke: React.FC = () => {
 
         if (isPw4Ref.current) {
           // Generate smoke particles for the dropped ball
-          const smokeDuration = 3000 // 10 seconds
+          const smokeDuration = 3000 // 3 seconds
           const startTime = Date.now()
 
           const generateSmoke = () => {
@@ -438,6 +470,19 @@ const MatterPixiSmoke: React.FC = () => {
               return prev
             })
             smokeTicker.stop()
+            // Remove the fireball after smoke duration
+            Composite.remove(engine.world, circle)
+            const fireballIndex = matterBodies.indexOf(circle)
+            if (fireballIndex !== -1) {
+              const fireballSprite = pixiSprites[fireballIndex]
+              if (fireballSprite) {
+                app.stage.removeChild(fireballSprite)
+                fireballSprite.destroy()
+              }
+              matterBodies.splice(fireballIndex, 1)
+              pixiSprites.splice(fireballIndex, 1)
+            }
+            fireballs.delete(circle)
           }, smokeDuration) // Run the ticker for the entire smoke duration
         } else {
           canDrop = true
