@@ -26,10 +26,12 @@
     "@pixi/react": "7",
     "@types/matter-js": "^0.19.8",
     "@types/pixi.js": "^5.0.0",
+    "framer-motion": "^11.17.0",
     "matter-js": "^0.20.0",
     "pixi.js": "7",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",

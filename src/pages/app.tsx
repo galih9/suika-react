@@ -1,13 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react'
 import * as PIXI from 'pixi.js'
 import Matter, { Engine, World, Bodies, Composite, Events } from 'matter-js'
-import ballFire from './assets/ball_fire.svg'
+import ballFire from '../assets/ball_fire.svg'
 import { IBalls, IPower } from 'utils/types'
 import { list_disaster, list_item, list_power } from 'utils/constants'
+import useGameStore from 'store'
+import { ScoreView } from 'components/score'
 
 const BLACK_COLOR = 0x000000
 
-const MatterPixiSmoke: React.FC = () => {
+const App: React.FC = () => {
+  // zustand states
+  const { score, setScore, increase, decrease } = useGameStore()
+  // hooks
   const sceneRef = useRef<HTMLDivElement>(null)
   const previewBox = useRef<HTMLDivElement>(null)
   const [ballSize, setBallSize] = useState<IBalls>(list_item[0]) // random radius between 10 and 40
@@ -25,7 +30,6 @@ const MatterPixiSmoke: React.FC = () => {
   const [activePower, setActivePower] = useState<IPower[]>([])
   const [disasters, setDisasters] = useState<IPower[]>([list_disaster[1]])
   const [isGameOver, setIsGameOver] = useState(false)
-  const [score, setScore] = useState<number>(0)
   const [showModal, setShowModal] = useState(false)
   // dw1
   const [isDw1, setIsDw1] = useState(false)
@@ -69,7 +73,6 @@ const MatterPixiSmoke: React.FC = () => {
         }
       }
     }
-    console.log('test', activePower)
   }, [activePower, showModal])
 
   useEffect(() => {
@@ -257,7 +260,7 @@ const MatterPixiSmoke: React.FC = () => {
                 pixiSprites.splice(ballIndex, 1)
 
                 // Update score or other game state if necessary
-                setScore((prevScore) => prevScore + 10) // Example: Add points for removing a ball
+                increase(10) // Example: Add points for removing a ball
               }
             }
           } else if (bodyA === topSensor || bodyB === topSensor) {
@@ -292,7 +295,7 @@ const MatterPixiSmoke: React.FC = () => {
                 Composite.add(world, newBall)
                 // modify score
                 if (isPw1Ref.current) {
-                  setScore((prev) => prev + ballA.size * 2)
+                  increase(ballA.size * 2)
                   setIsPw1(false)
                   setActivePower((prev) => {
                     const index = prev.findIndex(
@@ -306,7 +309,8 @@ const MatterPixiSmoke: React.FC = () => {
                     return prev
                   })
                 } else {
-                  setScore((prev) => prev + ballA.size)
+                  console.log(ballA.size)
+                  increase(ballA.size)
                 }
                 // Remove corresponding PixiJS sprites
                 const indexA = matterBodies.indexOf(bodyA)
@@ -332,7 +336,7 @@ const MatterPixiSmoke: React.FC = () => {
 
                 // check disaster
                 if (isDw1Ref) {
-                  setScore((prev) => prev - 5)
+                  decrease(score - 5)
                 }
 
                 Composite.remove(world, bodyA)
@@ -512,9 +516,7 @@ const MatterPixiSmoke: React.FC = () => {
             Is Game Over:{' '}
             <span className="font-semibold">{`${isGameOver}`}</span>
           </p>
-          <p className="text-lg">
-            Score: <span className="font-semibold">{`${score}`}</span>
-          </p>
+          <ScoreView />
           <p className="text-lg">
             Drop Count:{' '}
             <span className="font-semibold">{`${dropCounter}`}</span>
@@ -522,8 +524,8 @@ const MatterPixiSmoke: React.FC = () => {
           {activePower.length != 0 && (
             <>
               <p className="text-lg">Active Power:</p>
-              {activePower.map((e) => (
-                <span key={e.name} className="font-semibold">
+              {activePower.map((e, index) => (
+                <span key={`${e.name}-${index}`} className="font-semibold">
                   {e.name}
                 </span>
               ))}
@@ -532,8 +534,8 @@ const MatterPixiSmoke: React.FC = () => {
           {disasters.length != 0 && (
             <>
               <p className="text-lg">Active Disasters:</p>
-              {disasters.map((e) => (
-                <span key={e.name} className="font-semibold">
+              {disasters.map((e, index) => (
+                <span key={`${e.name}-${index}`} className="font-semibold">
                   {e.name}
                 </span>
               ))}
@@ -565,9 +567,9 @@ const MatterPixiSmoke: React.FC = () => {
           <div className="bg-white p-6 rounded-lg shadow-lg relative">
             <h2 className="text-2xl font-bold mb-4">Pick A Power Ups</h2>
             <div className="grid grid-cols-3 gap-4">
-              {availablePower.map((item) => (
+              {availablePower.map((item, index) => (
                 <div
-                  key={item.name}
+                  key={`${item.name}-${index}`}
                   className="p-4 bg-gray-200 rounded-lg relative group cursor-pointer"
                   onClick={() => {
                     setActivePower((prev) => [...prev, item])
@@ -584,9 +586,9 @@ const MatterPixiSmoke: React.FC = () => {
             <p className="text-md font-normal mb-4 my-4">Current Disasters</p>
             <div className="w-full flex items-center justify-center">
               <div className="grid grid-cols-3 gap-4">
-                {disasters.map((item) => (
+                {disasters.map((item, index) => (
                   <div
-                    key={item.name}
+                    key={`${item.name}-${index}`}
                     className="p-4 bg-gray-200 rounded-lg relative group"
                   >
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-800 text-white text-xs rounded-md shadow-lg">
@@ -604,4 +606,4 @@ const MatterPixiSmoke: React.FC = () => {
   )
 }
 
-export default MatterPixiSmoke
+export default App

@@ -11,7 +11,7 @@ import {
 import { list_disaster, list_item, list_power } from 'utils/constants'
 import { IBalls, IPower } from 'utils/types'
 
-function App() {
+function TestWithPureMatter() {
   const scene = useRef<HTMLDivElement>(null)
   const previewBox = useRef<HTMLDivElement>(null)
   const [dropCounter, setDropCounter] = useState(0)
@@ -357,4 +357,4 @@ function App() {
   )
 }
 
-export default App
+export default TestWithPureMatter
