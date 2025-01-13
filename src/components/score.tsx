@@ -15,7 +15,7 @@ export const ScoreView: FC<IProps> = () => {
       duration: 1,
       onUpdate(value) {
         if (node) {
-          node.textContent = value.toFixed(2)
+          node.textContent = value.toFixed(0)
         }
       }
     })

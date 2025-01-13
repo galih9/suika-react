@@ -3,34 +3,45 @@ import * as PIXI from 'pixi.js'
 import Matter, { Engine, World, Bodies, Composite, Events } from 'matter-js'
 import ballFire from '../assets/ball_fire.svg'
 import { IBalls, IPower } from 'utils/types'
-import { list_disaster, list_item, list_power } from 'utils/constants'
+import {
+  COLORS,
+  DIFFICULTIES,
+  list_item,
+} from 'utils/constants'
 import useGameStore from 'store'
 import { ScoreView } from 'components/score'
 
-const BLACK_COLOR = 0x000000
+const MODAL_SHOW_PER_COUNT = 5
+const DIFFICULTY = DIFFICULTIES.EASY
 
 const App: React.FC = () => {
   // zustand states
-  const { score, setScore, increase, decrease } = useGameStore()
+  const {
+    score,
+    setScore,
+    increase,
+    decrease,
+    disasters,
+    setDisasters,
+    addDisaster,
+    dropCounter,
+    setDropCounter,
+    incrementDropCounter,
+    availableBall,
+    setAvailableBall,
+    availablePower,
+    setAvailablePower,
+    setIsGameOver,
+    isGameOver,
+  } = useGameStore()
   // hooks
+  const [ballSize, setBallSize] = useState<IBalls>(list_item[0]) // random radius between 10 and 40
+  const [activePower, setActivePower] = useState<IPower[]>([])
+  const [showModal, setShowModal] = useState(false)
+  // refs
   const sceneRef = useRef<HTMLDivElement>(null)
   const previewBox = useRef<HTMLDivElement>(null)
-  const [ballSize, setBallSize] = useState<IBalls>(list_item[0]) // random radius between 10 and 40
   const ballSizeRef = useRef(ballSize)
-  const [dropCounter, setDropCounter] = useState(0)
-  const [availableBall, setAvailableBall] = useState<IBalls[]>([
-    list_item[0],
-    list_item[1]
-  ])
-  const [availablePower, setAvailablePower] = useState<IPower[]>([
-    list_power[0],
-    list_power[1],
-    list_power[3]
-  ])
-  const [activePower, setActivePower] = useState<IPower[]>([])
-  const [disasters, setDisasters] = useState<IPower[]>([list_disaster[1]])
-  const [isGameOver, setIsGameOver] = useState(false)
-  const [showModal, setShowModal] = useState(false)
   // dw1
   const [isDw1, setIsDw1] = useState(false)
   const isDw1Ref = useRef(false)
@@ -45,16 +56,13 @@ const App: React.FC = () => {
   const isPw4Ref = useRef(false)
 
   useEffect(() => {
-    if (dropCounter > 0 && dropCounter % 5 === 0) {
+    if (dropCounter > 0 && dropCounter % DIFFICULTY === 0) {
       const nextBallIndex = availableBall.length
       if (nextBallIndex < list_item.length) {
-        setAvailableBall((prevAvailableBall) => [
-          ...prevAvailableBall,
-          list_item[nextBallIndex]
-        ])
+        setAvailableBall([...availableBall, list_item[nextBallIndex]])
       }
     }
-    if (dropCounter > 0 && dropCounter % 2 === 0) {
+    if (dropCounter > 0 && dropCounter % MODAL_SHOW_PER_COUNT === 0) {
       setShowModal(true)
     }
   }, [dropCounter])
@@ -126,17 +134,9 @@ const App: React.FC = () => {
       matterCanvas.width = 400 // Adjust width to 400
     }
 
-    // Create PixiJS sprite for the ball using the SVG texture
-    // const ballTexture = PIXI.Texture.from(ballSpike)
-    // const ballSprite = new PIXI.Sprite(ballTexture)
-    // ballSprite.anchor.set(0.5)
-    // ballSprite.width = 100 // Match the size of the smaller ball
-    // ballSprite.height = 100 // Match the size of the smaller ball
-    // app.stage.addChild(ballSprite)
-
     // Create PixiJS graphics for the ground
     const groundGraphics = new PIXI.Graphics()
-    groundGraphics.beginFill(BLACK_COLOR)
+    groundGraphics.beginFill(COLORS.BLACK)
     groundGraphics.drawRect(0, 0, 400, 40) // Adjust width to 400
     groundGraphics.endFill()
     groundGraphics.y = 580 - 20 // Adjust position to match Matter.js ground
@@ -144,7 +144,7 @@ const App: React.FC = () => {
 
     // Create PixiJS graphics for the left wall
     const leftWallGraphics = new PIXI.Graphics()
-    leftWallGraphics.beginFill(BLACK_COLOR)
+    leftWallGraphics.beginFill(COLORS.BLACK)
     leftWallGraphics.drawRect(0, 0, 15, 600)
     leftWallGraphics.endFill()
     leftWallGraphics.x = 0 // Adjust position to match Matter.js left wall
@@ -152,7 +152,7 @@ const App: React.FC = () => {
 
     // Create PixiJS graphics for the right wall
     const rightWallGraphics = new PIXI.Graphics()
-    rightWallGraphics.beginFill(BLACK_COLOR)
+    rightWallGraphics.beginFill(COLORS.BLACK)
     rightWallGraphics.drawRect(0, 0, 15, 600)
     rightWallGraphics.endFill()
     rightWallGraphics.x = 400 - 15 // Adjust position to match Matter.js right wall
@@ -166,6 +166,10 @@ const App: React.FC = () => {
     const matterBodies: Matter.Body[] = []
     const pixiSprites: (PIXI.Graphics | PIXI.Sprite)[] = []
 
+    // console.log('========')
+    // console.log(pixiSprites)
+    // console.log('========')
+    // console.log(matterBodies)
     // Timer to stop generating smoke after 3 seconds
     const smokeDuration = 3000 // 3 seconds
     const startTime = Date.now()
@@ -190,6 +194,10 @@ const App: React.FC = () => {
         sprite.x = body.position.x
         sprite.y = body.position.y
       }
+      // console.log('========')
+      // console.log(pixiSprites)
+      // console.log('========')
+      // console.log(matterBodies)
 
       // Generate smoke particles if within smoke duration
       if (Date.now() - startTime < smokeDuration) {
@@ -309,7 +317,6 @@ const App: React.FC = () => {
                     return prev
                   })
                 } else {
-                  console.log(ballA.size)
                   increase(ballA.size)
                 }
                 // Remove corresponding PixiJS sprites
@@ -333,12 +340,6 @@ const App: React.FC = () => {
                   matterBodies.splice(adjustedIndexB, 1)
                   pixiSprites.splice(adjustedIndexB, 1)
                 }
-
-                // check disaster
-                if (isDw1Ref) {
-                  decrease(score - 5)
-                }
-
                 Composite.remove(world, bodyA)
                 Composite.remove(world, bodyB)
 
@@ -387,7 +388,8 @@ const App: React.FC = () => {
             // force:  { x: 0, y: 0.05 }, // Add downward force to make the ball heavy
             render: { fillStyle: ballSizeRef.current.color },
             friction: 1,
-            frictionStatic: 1
+            frictionStatic: 1,
+            frictionAir: 1
           }
         )
         Composite.add(engine.world, circle)
@@ -418,7 +420,7 @@ const App: React.FC = () => {
         }
 
         // Increment drop counter
-        setDropCounter((prevCounter) => prevCounter + 1)
+        incrementDropCounter()
 
         if (isPw4Ref.current) {
           // Generate smoke particles for the dropped ball

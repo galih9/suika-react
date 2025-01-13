@@ -1,4 +1,4 @@
-import App from 'pages/app'
+import App from 'pages/game'
 import { createRoot } from 'react-dom/client'
 import 'tailwindcss/tailwind.css'
 

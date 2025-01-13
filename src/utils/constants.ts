@@ -1,5 +1,23 @@
 import { IBalls, IPower } from './types'
 
+export const DIFFICULTIES = {
+  EASY: 20,
+  NORMAL: 60,
+  HARD: 150,
+  PROFESSIONAL: 350,
+  DESTROYER: 1000
+}
+
+export const COLORS = {
+  BLACK: 0x000000
+}
+
+export const HEX_COLORS = {
+  ORANGE: '#FF5733',
+  LIGHT_GREEN: '#33FF57',
+  BLUE: '#3357FF'
+}
+
 export const list_powerballs: IBalls[] = [
   { size: 40, name: 'GOD_BALL', color: '#eeff00', power_id: 'PW7' },
   { size: 40, name: 'FIRE_BALL', color: '#ff8833', power_id: 'PW4' },
@@ -22,9 +40,8 @@ export const list_item: IBalls[] = [
 
 export const list_disaster: IPower[] = [
   {
-    name: 'Icy Ball',
-    description:
-      'Your next spawned ball will be icy and froze the next ball, frozen ball need to merged twice',
+    name: 'Feather Ball',
+    description: 'Your next spawned ball will be slower to drop',
     power_id: 'DS1'
   },
   {
@@ -86,14 +103,13 @@ export const list_power: IPower[] = [
     power_id: 'PW1'
   },
   {
-    name: 'Heavy Ball',
+    name: 'Solid Ball',
     description: 'Next spawned ball will be heavy and less rolling',
     power_id: 'PW2'
   },
   {
-    name: 'Power Ball',
-    description:
-      'Next dropped ball shoots a random ball after its touch with the ground or anothere ball',
+    name: 'Hand Pump',
+    description: 'Cure any random disaster',
     power_id: 'PW3'
   },
   {
