@@ -3,13 +3,10 @@ import * as PIXI from 'pixi.js'
 import Matter, { Engine, World, Bodies, Composite, Events } from 'matter-js'
 import ballFire from '../assets/ball_fire.svg'
 import { IBalls, IPower } from 'utils/types'
-import {
-  COLORS,
-  DIFFICULTIES,
-  list_item,
-} from 'utils/constants'
+import { COLORS, DIFFICULTIES, list_disaster, list_item } from 'utils/constants'
 import useGameStore from 'store'
 import { ScoreView } from 'components/score'
+import { PowerContainer } from 'components/power'
 
 const MODAL_SHOW_PER_COUNT = 5
 const DIFFICULTY = DIFFICULTIES.EASY
@@ -17,26 +14,22 @@ const DIFFICULTY = DIFFICULTIES.EASY
 const App: React.FC = () => {
   // zustand states
   const {
-    score,
-    setScore,
-    increase,
-    decrease,
     disasters,
-    setDisasters,
-    addDisaster,
     dropCounter,
-    setDropCounter,
-    incrementDropCounter,
     availableBall,
-    setAvailableBall,
     availablePower,
-    setAvailablePower,
-    setIsGameOver,
     isGameOver,
+    increase,
+    incrementDropCounter,
+    setAvailableBall,
+    setIsGameOver,
+    addDisaster,
+    activePower,
+    setActivePower,
+    cureAnyDisaster
   } = useGameStore()
   // hooks
   const [ballSize, setBallSize] = useState<IBalls>(list_item[0]) // random radius between 10 and 40
-  const [activePower, setActivePower] = useState<IPower[]>([])
   const [showModal, setShowModal] = useState(false)
   // refs
   const sceneRef = useRef<HTMLDivElement>(null)
@@ -56,14 +49,22 @@ const App: React.FC = () => {
   const isPw4Ref = useRef(false)
 
   useEffect(() => {
-    if (dropCounter > 0 && dropCounter % DIFFICULTY === 0) {
-      const nextBallIndex = availableBall.length
-      if (nextBallIndex < list_item.length) {
-        setAvailableBall([...availableBall, list_item[nextBallIndex]])
+    if (dropCounter > 0) {
+      if (dropCounter % DIFFICULTY === 0) {
+        const nextBallIndex = availableBall.length
+        if (nextBallIndex < list_item.length) {
+          setAvailableBall([...availableBall, list_item[nextBallIndex]])
+        }
       }
-    }
-    if (dropCounter > 0 && dropCounter % MODAL_SHOW_PER_COUNT === 0) {
-      setShowModal(true)
+      if (dropCounter % MODAL_SHOW_PER_COUNT === 0) {
+        setShowModal(true)
+      }
+      if ((dropCounter % MODAL_SHOW_PER_COUNT) * 2 === 0) {
+        const nextIdx = disasters.length
+        if (nextIdx < list_disaster.length) {
+          addDisaster(list_disaster[nextIdx])
+        }
+      }
     }
   }, [dropCounter])
   useEffect(() => {
@@ -81,11 +82,23 @@ const App: React.FC = () => {
         }
       }
     }
-  }, [activePower, showModal])
+    if (disasters.length > 0) {
+      for (let i = 0; i < disasters.length; i++) {
+        const element = disasters[i]
+        if (element.power_id === 'DS1') {
+          setIsDw1(true)
+        }
+      }
+    }
+  }, [activePower, showModal, disasters])
 
   useEffect(() => {
     ballSizeRef.current = ballSize
   }, [ballSize])
+
+  useEffect(() => {
+    isDw1Ref.current = isDw1
+  }, [isDw1])
 
   useEffect(() => {
     isPw4Ref.current = isPw4
@@ -388,8 +401,8 @@ const App: React.FC = () => {
             // force:  { x: 0, y: 0.05 }, // Add downward force to make the ball heavy
             render: { fillStyle: ballSizeRef.current.color },
             friction: 1,
-            frictionStatic: 1,
-            frictionAir: 1
+            frictionStatic: 0.5,
+            frictionAir: isDw1Ref.current ? 0.5 : 0.01
           }
         )
         Composite.add(engine.world, circle)
@@ -466,7 +479,7 @@ const App: React.FC = () => {
           setTimeout(() => {
             canDrop = true
             setIsPw4(false)
-            setActivePower((prev) => {
+            setActivePower((prev: IPower[]) => {
               const index = prev.findIndex((power) => power.power_id === 'PW4')
               if (index !== -1) {
                 const newActivePower = [...prev]
@@ -524,14 +537,13 @@ const App: React.FC = () => {
             <span className="font-semibold">{`${dropCounter}`}</span>
           </p>
           {activePower.length != 0 && (
-            <>
-              <p className="text-lg">Active Power:</p>
-              {activePower.map((e, index) => (
-                <span key={`${e.name}-${index}`} className="font-semibold">
-                  {e.name}
-                </span>
-              ))}
-            </>
+            <PowerContainer
+              onCure={() => {
+                // to do implement curing
+                cureAnyDisaster("DS1")
+                setIsDw1(false)
+              }}
+            />
           )}
           {disasters.length != 0 && (
             <>
@@ -574,7 +586,7 @@ const App: React.FC = () => {
                   key={`${item.name}-${index}`}
                   className="p-4 bg-gray-200 rounded-lg relative group cursor-pointer"
                   onClick={() => {
-                    setActivePower((prev) => [...prev, item])
+                    setActivePower((prev: IPower[]) => [...prev, item])
                     setShowModal(false)
                   }}
                 >

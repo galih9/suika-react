@@ -9,4 +9,5 @@ export interface IPower {
   name: string
   description: string
   power_id: string
+  type: "active" | "passive" | "consumable" | "auto"
 }
